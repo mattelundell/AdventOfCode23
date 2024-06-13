@@ -33,7 +33,7 @@ internal class Program
                 // if firstDigit is null, we want to assign the value of c to it as c is the first digit we encountered
                 firstDigit ??= c;
 
-                // For each consecutive digit we find, we update the value of lastDigit to ensure that we use the last one
+                // For each consecutive digit we find, we update the value of lastDigit to ensure that we use the last encountered digit
                 lastDigit = c; // 
             }
         }
