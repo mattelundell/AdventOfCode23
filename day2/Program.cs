@@ -1,4 +1,6 @@
-﻿namespace day2;
+﻿using System.IO.Compression;
+
+namespace day2;
 
 internal class Program
 {
@@ -24,16 +26,27 @@ internal class Program
         string inputData = File.ReadAllText(inputPath);
         Dictionary<int, List<int[]>> games = ParseInput(inputData);
 
-        /*
-        * TODO: Evaluate each game to find the minimum set of cubes -> We need to find the highest r, g, b from all rounds of a game
-        * TODO: Calculate the power of the minimum set of cubes for each game -> r * g * b = power
-        * TODO: Calculate the sum of all the powers
-        */
-
-        //PrintGames(games);
+        List<int[]> minCubes = EvaluateMinimumSetOfCubes(games);
         List<int> possibleGames = EvaluateGamePossibility(games);
-        Console.WriteLine($"The gameIds of the possible games are = {string.Join(", ", possibleGames)}");
-        Console.WriteLine($"The sum of the possible gameIds = {possibleGames.Sum()}");
+        List<int> powers = CalculatePowerOfCubes(minCubes);
+
+        Console.WriteLine($"The gameIds of the possible games are: {string.Join(", ", possibleGames)}");
+
+        Console.WriteLine($"The sum of the possible gameIds is: {possibleGames.Sum()}");
+
+        Console.WriteLine("The minimum set of cubes for each game is:");
+        foreach (var cubeSet in minCubes)
+        {
+            Console.WriteLine($"[{string.Join(", ", cubeSet)}]");
+        }
+
+        Console.WriteLine("The power of each set of cubes is:");
+        foreach (var power in powers)
+        {
+            Console.WriteLine(power);
+        }
+
+        Console.WriteLine($"The sum of the powers is: {powers.Sum()}");
     }
 
     //Parse inputData using LINQ processing 
@@ -118,7 +131,42 @@ internal class Program
         return possibleGames;
     }
 
+    static List<int[]> EvaluateMinimumSetOfCubes(Dictionary<int, List<int[]>> games)
+    {
+        List<int[]> minCubes = games.Select(game =>
+        {
+            var rounds = game.Value;
+            int[] minSet = new int[COLOR_COUNT];
 
+            // Assign the max value for each color and store it in our minimum set
+            minSet[(int)CubeColor.Red] =
+                rounds.Max(round => round[(int)CubeColor.Red]);
+
+            minSet[(int)CubeColor.Green] =
+                rounds.Max(round => round[(int)CubeColor.Green]);
+
+            minSet[(int)CubeColor.Blue] =
+                rounds.Max(round => round[(int)CubeColor.Blue]);
+
+            return minSet;
+        }).ToList();
+
+        return minCubes;
+    }
+
+    static List<int> CalculatePowerOfCubes(List<int[]> minCubes)
+    {
+        List<int> powers = minCubes.Select(cubeSet =>
+        {
+            int power = cubeSet[(int)CubeColor.Red]
+                * cubeSet[(int)CubeColor.Green]
+                * cubeSet[(int)CubeColor.Blue];
+            return power;
+        }
+        ).ToList();
+
+        return powers;
+    }
     static void PrintGames(Dictionary<int, List<int[]>> games)
     {
         foreach (var game in games)
