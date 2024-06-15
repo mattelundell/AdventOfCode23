@@ -1,4 +1,8 @@
-﻿namespace day2;
+﻿using System.IO.Compression;
+using System.Runtime.CompilerServices;
+using Microsoft.VisualBasic;
+
+namespace day2;
 
 internal class Program
 {
@@ -10,81 +14,72 @@ internal class Program
         Blue = 2
     }
 
+    const int COLOR_COUNT = 3;
+
     static void Main(string[] args)
     {
+        /* string testData =
+            "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green" +
+            "Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue" +
+            "Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red" +
+            "Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red" +
+            "Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green"; */
+        //Dictionary<int, List<int[]>> games = ParseInput(testData);
+
         string inputPath = "input.txt";
-        string testData =
-            "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green\n" +
-            "Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue\n" +
-            "Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red\n" +
-            "Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red\n" +
-            "Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
-
-        Dictionary<int, List<int[]>> games = ParseInput(testData);
-
+        string inputData = File.ReadAllText(inputPath);
+        
+        Dictionary<int, List<int[]>> games = ParseInput(inputData);
         PrintGames(games);
-
     }
 
+    //Parse inputData using LINQ processing 
     static Dictionary<int, List<int[]>> ParseInput(string inputData)
     {
-        var games = new Dictionary<int, List<int[]>>();
+        var games = inputData
+            // Splitting games
+            // first {[""], [1: "3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green"]}
+            // then {["1"], ["3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green"]}
+            .Split("Game ", StringSplitOptions.RemoveEmptyEntries)
+            .Select(game => game.Split(':'))
 
-        // Delimiters
-        char partDelimiter = ':';
-        char cubeDelimiter = ',';
-        char setDelimiter = ';';
-        char gameDelimiter = '\n';
+            // Converts the result to a dictionary
+            .ToDictionary(
+                // Key = gameId
+                parts => int.Parse(parts[0].Split(' ')[0]),
 
-        // Split input data into a list of strings
-        string[] gameData = inputData.Split(gameDelimiter);
+                // Value: sets of game rounds
+                parts => parts[1]
 
-        // Loop through each game
-        foreach (string game in gameData)
-        {
-            // Split each game entry into two parts, e.g. {["Game 1"], ["3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green"]}
-            string[] parts = game.Split(partDelimiter);
+                    // Splits sets by ';' and cubes by ','
+                    // set is e.g. {["3 blue, 4 red"], ["1 red, 2 green, 6 blue"]}, and cube is e.g. ["3 blue", "4 red"]
+                    .Split(';')
+                    .Select(set => set
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
 
-            // Splitting the first part and fetch the current gameId
-            int gameId = int.Parse(parts[0].Split(' ')[1]);
+                        // Processing cubes
+                        // A cube gets a count and a color, e.g. cube.Count = 3, cube.Color = Blue
+                        .Select(cube =>
+                        {
+                            // Trims and splits each cube, parsing the count and color
+                            var splitCubes = cube.Trim().Split(' ');
+                            return new
+                            {
+                                Count = int.Parse(splitCubes[0]),
+                                Color = (CubeColor)Enum.Parse(typeof(CubeColor), splitCubes[1], true)
+                            };
 
-            // Split the current game into separate sets, e.g. {["3 blue, 4 red"], ["1 red, 2 green, 6 blue"], ["2 green"]]
-            string[] setData = parts[1].Split(setDelimiter);
+                        })
 
-            // Store each set in a list of int arrays, e.g. {[3, 4, 1], [2, 1, 2], [0, 1, 2]}.
-            // Each index represents a cube color by mapping with the enums CubeColor
-            var sets = new List<int[]>();
-
-            // Loop through each set
-            foreach (string set in setData)
-            {
-                // A list of integers of length 3, i.e. the number of colors in our enum, initalized to [0,0,0]
-                // Each index represents a cube color, e.g. CubeColor.Red = index 0
-                var gameRound = new int[Enum.GetValues(typeof(CubeColor)).Length];
-
-                // Split the current set into the different cubes, e.g. {["3 blue"], ["4 red"]}
-                string[] cubesInSet = set.Split(cubeDelimiter);
-
-                foreach (string cubes in cubesInSet)
-                {
-                    // Trim any excess whitespace and split into two parts, e.g. ["6", "blue"]
-                    string trimmedCubes = cubes.Trim();
-                    string[] splitCubes = trimmedCubes.Split(' ');
-
-                    // Convert the number of cubes to an integer and parse the color using the enums to get the correct index
-                    int count = int.Parse(splitCubes[0]);
-                    CubeColor color = (CubeColor)Enum.Parse(typeof(CubeColor), splitCubes[1], true);
-
-                    // Store the number of cubes in the correct index position based on its color
-                    gameRound[(int) color] = count;
-                }
-                // Add each game round to our list of sets, e.g. [6, 2, 1] = 6 red cubes, 2 green cubes, 1 blue cube
-                sets.Add(gameRound);
-            }
-            // Add the sets to the list of games in the current gameId's position
-            games[gameId] = sets;
-        }
-
+                        // Aggregate the cube counts into an array where each index corresponds to a color
+                        // 4 red, 3 blue is e.g. [4, 0, 3]
+                        .Aggregate(new int[COLOR_COUNT], (cubes, cube) =>
+                        {
+                            cubes[(int)cube.Color] = cube.Count;
+                            return cubes;
+                        }))
+                    .ToList()
+            );
         return games;
     }
 
