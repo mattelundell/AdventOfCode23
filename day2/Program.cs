@@ -24,6 +24,12 @@ internal class Program
         string inputData = File.ReadAllText(inputPath);
         Dictionary<int, List<int[]>> games = ParseInput(inputData);
 
+        /*
+        * TODO: Evaluate each game to find the minimum set of cubes -> We need to find the highest r, g, b from all rounds of a game
+        * TODO: Calculate the power of the minimum set of cubes for each game -> r * g * b = power
+        * TODO: Calculate the sum of all the powers
+        */
+
         //PrintGames(games);
         List<int> possibleGames = EvaluateGamePossibility(games);
         Console.WriteLine($"The gameIds of the possible games are = {string.Join(", ", possibleGames)}");
