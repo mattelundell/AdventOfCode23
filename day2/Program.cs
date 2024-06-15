@@ -1,10 +1,7 @@
-﻿using System.IO.Compression;
-
-namespace day2;
+﻿namespace day2;
 
 internal class Program
 {
-
     private enum CubeColor
     {
         Red = 0,
@@ -14,14 +11,16 @@ internal class Program
 
     private static readonly int COLOR_COUNT = 3;
 
-    private static readonly List<int> BagOfCubes = [12, 13, 14];
+    private static readonly Dictionary<CubeColor, int> BagOfCubes =
+        new()
+        {
+            { CubeColor.Red, 12 },
+            { CubeColor.Green, 13 },
+            { CubeColor.Blue, 14 }
+        };
 
     static void Main(string[] args)
     {
-        /* string inputPath = "test.txt";
-        string testData = File.ReadAllText(inputPath);
-        Dictionary<int, List<int[]>> games = ParseInput(testData); */
-
         string inputPath = "input.txt";
         string inputData = File.ReadAllText(inputPath);
         Dictionary<int, List<int[]>> games = ParseInput(inputData);
@@ -30,78 +29,60 @@ internal class Program
         List<int> possibleGames = EvaluateGamePossibility(games);
         List<int> powers = CalculatePowerOfCubes(minCubes);
 
-        Console.WriteLine($"The gameIds of the possible games are: {string.Join(", ", possibleGames)}");
-
         Console.WriteLine($"The sum of the possible gameIds is: {possibleGames.Sum()}");
-
-        Console.WriteLine("The minimum set of cubes for each game is:");
-        foreach (var cubeSet in minCubes)
-        {
-            Console.WriteLine($"[{string.Join(", ", cubeSet)}]");
-        }
-
-        Console.WriteLine("The power of each set of cubes is:");
-        foreach (var power in powers)
-        {
-            Console.WriteLine(power);
-        }
-
         Console.WriteLine($"The sum of the powers is: {powers.Sum()}");
     }
 
-    //Parse inputData using LINQ processing 
+    // Parse inputData using LINQ
+    // Returns a Dictionary with gameIds as keys and a list of game rounds as values
     static Dictionary<int, List<int[]>> ParseInput(string inputData)
     {
         var games = inputData
-            // Splitting games
-            // first {[""], [1: "3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green"]}
-            // then {["1"], ["3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green"]}
             .Split("Game ", StringSplitOptions.RemoveEmptyEntries)
+            // Process games
             .Select(game => game.Split(':'))
-
-            // Converts the result to a dictionary
             .ToDictionary(
-                // Key = gameId
                 parts => int.Parse(parts[0].Split(' ')[0]),
-
-                // Value: sets of game rounds
-                parts => parts[1]
-
-                    // Splits sets by ';' and cubes by ','
-                    // set is e.g. {["3 blue, 4 red"], ["1 red, 2 green, 6 blue"]}, and cube is e.g. ["3 blue", "4 red"]
-                    .Split(';')
-                    .Select(set => set
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-
-                        // Processing cubes
-                        // A cube gets a count and a color, e.g. cube.Count = 3, cube.Color = Blue
-                        .Select(cube =>
-                        {
-                            // Trims and splits each cube, parsing the count and color
-                            var splitCubes = cube.Trim().Split(' ');
-                            return new
-                            {
-                                Count = int.Parse(splitCubes[0]),
-                                Color = (CubeColor)Enum.Parse(typeof(CubeColor), splitCubes[1], true)
-                            };
-
-                        })
-
-                        // Aggregate the cube counts into an array where each index corresponds to a color
-                        // 4 red, 3 blue is e.g. [4, 0, 3]
-                        .Aggregate(new int[COLOR_COUNT], (cubes, cube) =>
-                        {
-                            cubes[(int)cube.Color] = cube.Count;
-                            return cubes;
-                        }))
-                    .ToList()
+                parts =>
+                    parts[1]
+                        .Split(';')
+                        // Process sets
+                        .Select(set =>
+                            set.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                // Process cubes
+                                .Select(cube =>
+                                {
+                                    var splitCubes = cube.Trim().Split(' ');
+                                    return new
+                                    {
+                                        Count = int.Parse(splitCubes[0]),
+                                        Color = (CubeColor)
+                                            Enum.Parse(typeof(CubeColor), splitCubes[1], true)
+                                    };
+                                })
+                                // Store cube count in designated color index
+                                .Aggregate(
+                                    new int[COLOR_COUNT],
+                                    (cubes, cube) =>
+                                    {
+                                        cubes[(int)cube.Color] = cube.Count;
+                                        return cubes;
+                                    }
+                                )
+                        )
+                        .ToList()
             );
         return games;
     }
 
+    // Evaluate which games are possibile based on the given set of cubes
+    // Returns a list of gameIds for each possible game given the set of cubes in the bag
     static List<int> EvaluateGamePossibility(Dictionary<int, List<int[]>> games)
     {
         List<int> possibleGames = [];
+        int redCubesInBag = BagOfCubes[CubeColor.Red];
+        int greenCubesInBag = BagOfCubes[CubeColor.Green];
+        int blueCubesInBag = BagOfCubes[CubeColor.Blue];
 
         foreach (var game in games)
         {
@@ -109,13 +90,14 @@ internal class Program
             List<int[]> rounds = game.Value;
             bool possible = true;
 
-            // Check if the round had a color count higher than what's in the bag, and if so, the game was not possible.
+            // Check if the current round had a color count higher than what's in the bag
             foreach (var round in rounds)
             {
-
-                if (round[(int)CubeColor.Red] > BagOfCubes[(int)CubeColor.Red] ||
-                    round[(int)CubeColor.Green] > BagOfCubes[(int)CubeColor.Green] ||
-                    round[(int)CubeColor.Blue] > BagOfCubes[(int)CubeColor.Blue])
+                if (
+                    round[(int)CubeColor.Red] > redCubesInBag
+                    || round[(int)CubeColor.Green] > greenCubesInBag
+                    || round[(int)CubeColor.Blue] > blueCubesInBag
+                )
                 {
                     possible = false;
                     break;
@@ -131,57 +113,45 @@ internal class Program
         return possibleGames;
     }
 
+    // Evaluates the minimum necessary cubes of each color in order for a game to be possible.
+    // Returns a new list with the minimum set of cubes for each game.
     static List<int[]> EvaluateMinimumSetOfCubes(Dictionary<int, List<int[]>> games)
     {
-        List<int[]> minCubes = games.Select(game =>
-        {
-            var rounds = game.Value;
-            int[] minSet = new int[COLOR_COUNT];
+        List<int[]> minCubes = games
+            .Select(game =>
+            {
+                var rounds = game.Value;
+                int[] minSet = new int[COLOR_COUNT];
 
-            // Assign the max value for each color and store it in our minimum set
-            minSet[(int)CubeColor.Red] =
-                rounds.Max(round => round[(int)CubeColor.Red]);
+                // Assign the max value for each color and store it in our minimum set
+                minSet[(int)CubeColor.Red] = rounds.Max(round => round[(int)CubeColor.Red]);
 
-            minSet[(int)CubeColor.Green] =
-                rounds.Max(round => round[(int)CubeColor.Green]);
+                minSet[(int)CubeColor.Green] = rounds.Max(round => round[(int)CubeColor.Green]);
 
-            minSet[(int)CubeColor.Blue] =
-                rounds.Max(round => round[(int)CubeColor.Blue]);
+                minSet[(int)CubeColor.Blue] = rounds.Max(round => round[(int)CubeColor.Blue]);
 
-            return minSet;
-        }).ToList();
+                return minSet;
+            })
+            .ToList();
 
         return minCubes;
     }
 
+    // Calculates the power of each minimum set of cubes, i.e. multiplies the value of each color
+    // Returns a list of powers for each game.
     static List<int> CalculatePowerOfCubes(List<int[]> minCubes)
     {
-        List<int> powers = minCubes.Select(cubeSet =>
-        {
-            int power = cubeSet[(int)CubeColor.Red]
-                * cubeSet[(int)CubeColor.Green]
-                * cubeSet[(int)CubeColor.Blue];
-            return power;
-        }
-        ).ToList();
+        List<int> powers = minCubes
+            .Select(cubeSet =>
+            {
+                int power =
+                    cubeSet[(int)CubeColor.Red]
+                    * cubeSet[(int)CubeColor.Green]
+                    * cubeSet[(int)CubeColor.Blue];
+                return power;
+            })
+            .ToList();
 
         return powers;
     }
-    static void PrintGames(Dictionary<int, List<int[]>> games)
-    {
-        foreach (var game in games)
-        {
-            Console.WriteLine($"Game {game.Key}:");
-            foreach (var round in game.Value)
-            {
-                Console.WriteLine($"  Round:");
-                Console.WriteLine($"    Red: {round[(int)CubeColor.Red]}");
-                Console.WriteLine($"    Green: {round[(int)CubeColor.Green]}");
-                Console.WriteLine($"    Blue: {round[(int)CubeColor.Blue]}");
-            }
-        }
-    }
-
-
 }
-
