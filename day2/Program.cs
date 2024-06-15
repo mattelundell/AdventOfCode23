@@ -1,8 +1,4 @@
-﻿using System.IO.Compression;
-using System.Runtime.CompilerServices;
-using Microsoft.VisualBasic;
-
-namespace day2;
+﻿namespace day2;
 
 internal class Program
 {
