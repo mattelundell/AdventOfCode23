@@ -12,11 +12,6 @@ internal class Program
 
     private static readonly int COLOR_COUNT = 3;
 
-    // TODO: Evaluate wheter or not each game in games was possible with the bagOfCubes
-    // TODO: Calculate the sum of the possible game indexes
-    // Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red => not possible as first round had 20 reds
-    // In test.txt, only games 1, 2 and 5 would have been possible. Sum of indexes = 8
-
     private static readonly List<int> BagOfCubes = [12, 13, 14];
 
     static void Main(string[] args)
