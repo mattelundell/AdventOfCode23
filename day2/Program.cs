@@ -3,26 +3,36 @@
 internal class Program
 {
 
-    public enum CubeColor
+    private enum CubeColor
     {
         Red = 0,
         Green = 1,
         Blue = 2
     }
 
-    const int COLOR_COUNT = 3;
+    private static readonly int COLOR_COUNT = 3;
+
+    // TODO: Evaluate wheter or not each game in games was possible with the bagOfCubes
+    // TODO: Calculate the sum of the possible game indexes
+    // Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red => not possible as first round had 20 reds
+    // In test.txt, only games 1, 2 and 5 would have been possible. Sum of indexes = 8
+
+    private static readonly List<int> BagOfCubes = [12, 13, 14];
 
     static void Main(string[] args)
     {
-        string inputPath = "test.txt";
+        /* string inputPath = "test.txt";
         string testData = File.ReadAllText(inputPath);
-        Dictionary<int, List<int[]>> games = ParseInput(testData);
+        Dictionary<int, List<int[]>> games = ParseInput(testData); */
 
-        /* string inputPath = "input.txt";
+        string inputPath = "input.txt";
         string inputData = File.ReadAllText(inputPath);
-        Dictionary<int, List<int[]>> games = ParseInput(inputData); */
+        Dictionary<int, List<int[]>> games = ParseInput(inputData);
 
-        PrintGames(games);
+        //PrintGames(games);
+        List<int> possibleGames = EvaluateGamePossibility(games);
+        Console.WriteLine($"The gameIds of the possible games are = {string.Join(", ", possibleGames)}");
+        Console.WriteLine($"The sum of the possible gameIds = {possibleGames.Sum()}");
     }
 
     //Parse inputData using LINQ processing 
@@ -74,6 +84,39 @@ internal class Program
             );
         return games;
     }
+
+    static List<int> EvaluateGamePossibility(Dictionary<int, List<int[]>> games)
+    {
+        List<int> possibleGames = [];
+
+        foreach (var game in games)
+        {
+            int gameId = game.Key;
+            List<int[]> rounds = game.Value;
+            bool possible = true;
+
+            // Check if the round had a color count higher than what's in the bag, and if so, the game was not possible.
+            foreach (var round in rounds)
+            {
+
+                if (round[(int)CubeColor.Red] > BagOfCubes[(int)CubeColor.Red] ||
+                    round[(int)CubeColor.Green] > BagOfCubes[(int)CubeColor.Green] ||
+                    round[(int)CubeColor.Blue] > BagOfCubes[(int)CubeColor.Blue])
+                {
+                    possible = false;
+                    break;
+                }
+            }
+
+            if (possible)
+            {
+                possibleGames.Add(gameId);
+            }
+        }
+
+        return possibleGames;
+    }
+
 
     static void PrintGames(Dictionary<int, List<int[]>> games)
     {
