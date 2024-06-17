@@ -2,20 +2,26 @@
 
 internal class Program
 {
-    // Dictionary used to map strings to their corresponding digit. 
-    private static readonly Dictionary<string, int> textToDigit = new(){
-        {"zero", 0}, {"one", 1}, {"two", 2},
-        {"three", 3}, {"four", 4}, {"five", 5},
-        {"six", 6}, {"seven", 7}, {"eight", 8},
-        {"nine", 9}
-    };
+    // Dictionary used to map strings to their corresponding digit.
+    private static readonly Dictionary<string, int> StringToDigit =
+        new()
+        {
+            { "zero", 0 },
+            { "one", 1 },
+            { "two", 2 },
+            { "three", 3 },
+            { "four", 4 },
+            { "five", 5 },
+            { "six", 6 },
+            { "seven", 7 },
+            { "eight", 8 },
+            { "nine", 9 }
+        };
+
     static void Main(string[] args)
     {
         string inputPath = "input.txt";
-
         List<string> inputWords = ReadWordsFromFile(inputPath);
-        //List<string> testWords1 = ["1abc2", "pqr3stu8vwx", "a1b2c3d4e5f", "treb7uchet"];
-        //List<string> testWords2 = ["oneight", "two1nine", "eightwothree", "abcone2threexyz", "xtwone3four", "4nineeightseven2", "zoneight234", "7pqrstsixteen"];
 
         // Evaluate and convert each word from input.txt
         List<string> convertedWords = [];
@@ -38,6 +44,8 @@ internal class Program
         return [.. File.ReadAllLines(filePath)];
     }
 
+    // Iterates over a word and converts text representation of numbers to digits
+    // Returns a string of the number, e.g. "1oneight" -> "118"
     static string ConvertWordToNumber(string word)
     {
         string result = "";
@@ -47,21 +55,20 @@ internal class Program
         {
             bool foundMatchingKeyWord = false;
 
-            foreach (var entry in textToDigit)
+            foreach (var entry in StringToDigit)
             {
                 // Ensures that the remaining substring of the evaluated word is at least as long as the key we are trying to match
                 if (word.Length - i >= entry.Key.Length)
                 {
-                    // The remaining substring of the evaluated word
-                    string subString = word.Substring(i, entry.Key.Length);
+                    // The remaining characters of the word
+                    string remainingWord = word.Substring(i, entry.Key.Length);
 
-                    // Checks to see if the beginning of the remaining substring matches with the key, ignoring casing of letters
-                    if (subString.Equals(entry.Key, StringComparison.OrdinalIgnoreCase))
+                    // Checks to see if the beginning matches with the key
+                    // If match: add the digit and jump to the next point in the evaluated word
+                    // Have to start the next matching with the last character of the matched key to catch edge cases such as "oneight" -> 18
+                    if (remainingWord.Equals(entry.Key, StringComparison.OrdinalIgnoreCase))
                     {
-                        // If we have a match, we add the digit to our result string, and jump to the next point in the evaluated word 
                         result += entry.Value;
-
-                        // Have to start the next matching with the last character of the matched key to catch edge cases such as "oneight" -> 18
                         i += entry.Key.Length - 1;
                         foundMatchingKeyWord = true;
                         break;
@@ -69,10 +76,9 @@ internal class Program
                 }
             }
 
-            // If we didn't match the beginning of the remaining substring to a key, the substring could begin with a digit
+            // If no match, check if it is a digit, add it to the result, move to next character
             if (!foundMatchingKeyWord)
             {
-                // Ensure that the starting character of the remaining substring is in fact a digit, add it to our result string, move on to the next character
                 if (char.IsDigit(word[i]))
                 {
                     result += word[i];
@@ -80,10 +86,11 @@ internal class Program
                 i++;
             }
         }
-
         return result;
     }
 
+    // Iterates over a string representation of a number and returns an integer of the first and last digit
+    // "1820" -> 10
     static int FirstAndLastDigits(string word)
     {
         char? firstDigit = null;
@@ -93,12 +100,11 @@ internal class Program
         {
             if (char.IsDigit(c))
             {
-
-                // if firstDigit is null, we want to assign the value of c to it as c is the first digit we encountered
+                // if firstDigit is null, we assign c as it is the first digit
                 firstDigit ??= c;
 
-                // For each consecutive digit we find, we update the value of lastDigit to ensure that we use the last encountered digit
-                lastDigit = c; // 
+                // update lastDigit each time we encounter a new digit
+                lastDigit = c; //
             }
         }
 
@@ -108,11 +114,10 @@ internal class Program
             return 0;
         }
 
-        // Construct the resulting value from the first and last digit and parse it as an integer
+        // Parse the first and last digit to an integer
         string numberString = $"{firstDigit}{lastDigit}";
         int result = int.Parse(numberString);
 
         return result;
     }
 }
-
