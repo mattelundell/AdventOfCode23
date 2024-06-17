@@ -9,8 +9,9 @@ internal class Program
         Blue = 2
     }
 
-    private static readonly int COLOR_COUNT = 3;
+    private static readonly int COLOR_COUNT = Enum.GetValues(typeof(CubeColor)).Length;
 
+    // Given set of cubes from the problem instructions
     private static readonly Dictionary<CubeColor, int> BagOfCubes =
         new()
         {
@@ -29,8 +30,8 @@ internal class Program
         List<int> possibleGames = EvaluateGamePossibility(games);
         List<int> powers = CalculatePowerOfCubes(minCubes);
 
-        Console.WriteLine($"The sum of the possible gameIds is: {possibleGames.Sum()}");
-        Console.WriteLine($"The sum of the powers is: {powers.Sum()}");
+        Console.WriteLine($"The sum of the possible gameIds is: {possibleGames.Sum()}"); //2683
+        Console.WriteLine($"The sum of the powers is: {powers.Sum()}"); //49710
     }
 
     // Parse inputData using LINQ
@@ -46,9 +47,9 @@ internal class Program
                 parts =>
                     parts[1]
                         .Split(';')
-                        // Process sets
-                        .Select(set =>
-                            set.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        // Process gameRounds
+                        .Select(gameRound =>
+                            gameRound.Split(',', StringSplitOptions.RemoveEmptyEntries)
                                 // Process cubes
                                 .Select(cube =>
                                 {
@@ -87,16 +88,17 @@ internal class Program
         foreach (var game in games)
         {
             int gameId = game.Key;
-            List<int[]> rounds = game.Value;
+            List<int[]> gameRounds = game.Value;
             bool possible = true;
 
             // Check if the current round had a color count higher than what's in the bag
-            foreach (var round in rounds)
+            // Add gameId to list of possibleGames if game is possible
+            foreach (var gameRound in gameRounds)
             {
                 if (
-                    round[(int)CubeColor.Red] > redCubesInBag
-                    || round[(int)CubeColor.Green] > greenCubesInBag
-                    || round[(int)CubeColor.Blue] > blueCubesInBag
+                    gameRound[(int)CubeColor.Red] > redCubesInBag
+                    || gameRound[(int)CubeColor.Green] > greenCubesInBag
+                    || gameRound[(int)CubeColor.Blue] > blueCubesInBag
                 )
                 {
                     possible = false;
@@ -120,15 +122,15 @@ internal class Program
         List<int[]> minCubes = games
             .Select(game =>
             {
-                var rounds = game.Value;
+                var gameRounds = game.Value;
                 int[] minSet = new int[COLOR_COUNT];
 
                 // Assign the max value for each color and store it in our minimum set
-                minSet[(int)CubeColor.Red] = rounds.Max(round => round[(int)CubeColor.Red]);
+                minSet[(int)CubeColor.Red] = gameRounds.Max(round => round[(int)CubeColor.Red]);
 
-                minSet[(int)CubeColor.Green] = rounds.Max(round => round[(int)CubeColor.Green]);
+                minSet[(int)CubeColor.Green] = gameRounds.Max(round => round[(int)CubeColor.Green]);
 
-                minSet[(int)CubeColor.Blue] = rounds.Max(round => round[(int)CubeColor.Blue]);
+                minSet[(int)CubeColor.Blue] = gameRounds.Max(round => round[(int)CubeColor.Blue]);
 
                 return minSet;
             })
