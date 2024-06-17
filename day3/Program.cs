@@ -10,6 +10,8 @@ internal class Program
         public int Col { get; set; }
     }
 
+    public static readonly char Gear = '*';
+
     static void Main(string[] args)
     {
         string inputPath = "input.txt";
@@ -73,10 +75,18 @@ internal class Program
         ];
 
         List<int> adjacentNumbers = FindAdjacentNumbers(grid, directions);
+        List<HashSet<int>> gearParts = FindGearParts(grid, directions);
+
+        // Calculate the gearRatio (gearPartA * gearPartB) for each set of gearParts and aggregate the total
+        int gearRatioSum = gearParts
+            .Select(parts => parts.Aggregate(1, (gearRatio, part) => gearRatio * part))
+            .Sum();
 
         Console.WriteLine(
             $"The sum of the numbers that are adjacent to a symbol is: {adjacentNumbers.Sum()}"
         );
+
+        Console.WriteLine($"The sum of the gear ratios is: {gearRatioSum}");
     }
 
     // Initializes 2D array of characters to represent the inputdata as a grid
@@ -131,10 +141,63 @@ internal class Program
         return adjacentNumbers;
     }
 
+    // Returns a List with a HashSet containing the gearParts-combo
+    public static List<HashSet<int>> FindGearParts(char[,] grid, CardinalDirection[] directions)
+    {
+        int numRows = grid.GetLength(0);
+        int numCols = grid.GetLength(1);
+
+        List<HashSet<int>> gearParts = [];
+
+        // Loop through the grid to find a Gear ('*')
+        for (int row = 0; row < numRows; row++)
+        {
+            for (int col = 0; col < numCols; col++)
+            {
+                if (IsGear(grid[row, col]))
+                {
+                    HashSet<int> candidateNumbers = [];
+                    // Check all adjacent tiles in the grid
+                    foreach (CardinalDirection direction in directions)
+                    {
+                        int candidateRow = row + direction.Row;
+                        int candidateCol = col + direction.Col;
+
+                        // Check if the candidate tile is valid, i.e. in bounds and a digit
+                        // If valid, extract the number and store it in a HashSet to avoid duplicates
+                        if (IsValidCandidate(grid, candidateRow, candidateCol))
+                        {
+                            candidateNumbers.Add(ExtractNumber(grid, candidateRow, candidateCol));
+                        }
+                    }
+
+                    // Add the candidates to the list of gearParts if they are gearParts
+                    if (IsGearPart(candidateNumbers))
+                    {
+                        gearParts.Add(candidateNumbers);
+                    }
+                }
+            }
+        }
+
+        return gearParts;
+    }
+
+    // Helper function to evaluate that a candidate set is gear parts (has exactly two numbers)
+    public static Boolean IsGearPart(HashSet<int> gearSet)
+    {
+        return gearSet.Count == 2;
+    }
+
     // Helper method to evaluate if a character is a symbol
     public static bool IsSymbol(char c)
     {
         return c != '.' && !char.IsDigit(c);
+    }
+
+    public static bool IsGear(char c)
+    {
+        return c == Gear;
     }
 
     // Helper method to evaluate if a candidate tile is valid, i.e. within bounds and a digit
