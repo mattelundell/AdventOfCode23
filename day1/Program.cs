@@ -2,6 +2,26 @@
 
 internal class Program
 {
+    static void Main(string[] args)
+    {
+        string inputPath = "input.txt";
+        List<string> lines = ReadLinesFromFile(inputPath);
+
+        // Evaluate and convert each line from input.txt to numbers
+        List<string> convertedLines = [];
+        foreach (string line in lines)
+        {
+            string numbers = ConvertLineToNumbers(line);
+            convertedLines.Add(numbers);
+        }
+
+        // Transform each line to the result of the FirstAndLastDigits-method
+        // I.e. return a list with the first and last digit four each line
+        List<int> calibratedValues = convertedLines.Select(FirstAndLastDigits).ToList();
+        int sum = calibratedValues.Sum();
+        Console.WriteLine($"The sum of the calibrated values is: {sum}.");
+    }
+
     // Dictionary used to map strings to their corresponding digit.
     private static readonly Dictionary<string, int> StringToDigit =
         new()
@@ -18,101 +38,73 @@ internal class Program
             { "nine", 9 }
         };
 
-    static void Main(string[] args)
-    {
-        string inputPath = "input.txt";
-        List<string> inputWords = ReadWordsFromFile(inputPath);
-
-        // Evaluate and convert each word from input.txt
-        List<string> convertedWords = [];
-        foreach (var word in inputWords)
-        {
-            string number = ConvertWordToNumber(word);
-            convertedWords.Add(number);
-        }
-
-        //Transform each word in the list to the result of the FirstAndLastDigits-method
-        // The list calibratedValues contains the first and last digit found in each converted word
-        List<int> calibratedValues = convertedWords.Select(FirstAndLastDigits).ToList();
-        int sum = calibratedValues.Sum(); // 54094
-        Console.WriteLine($"The sum of the calibrated values is: {sum}.");
-    }
-
-    // Reads a text file and returns a List<string> with all the input words
-    static List<string> ReadWordsFromFile(string filePath)
+    // Reads a text file and returns a List<string> with all the input lines
+    static List<string> ReadLinesFromFile(string filePath)
     {
         return [.. File.ReadAllLines(filePath)];
     }
 
     // Iterates over a word and converts text representation of numbers to digits
     // Returns a string of the number, e.g. "1oneight" -> "118"
-    static string ConvertWordToNumber(string word)
+    static string ConvertLineToNumbers(string line)
     {
         string result = "";
         int i = 0;
 
-        while (i < word.Length)
+        while (i < line.Length)
         {
-            bool foundMatchingKeyWord = false;
+            bool digitFound = char.IsDigit(line[i]);
+            if (digitFound)
+            {
+                result += line[i];
+                i++;
+                continue;
+            }
+
+            bool matchedWithKey = false;
 
             foreach (var entry in StringToDigit)
             {
-                // Ensures that the remaining substring of the evaluated word is at least as long as the key we are trying to match
-                if (word.Length - i >= entry.Key.Length)
+                // Ensures that the remaining substring is at least as long as the key
+                bool notEnoughCharsForKey = line.Length - i < entry.Key.Length;
+                if (notEnoughCharsForKey)
                 {
-                    // The remaining characters of the word
-                    string remainingWord = word.Substring(i, entry.Key.Length);
+                    continue;
+                }
 
-                    // Checks to see if the beginning matches with the key
-                    // If match: add the digit and jump to the next point in the evaluated word
-                    // Have to start the next matching with the last character of the matched key to catch edge cases such as "oneight" -> 18
-                    if (remainingWord.Equals(entry.Key, StringComparison.OrdinalIgnoreCase))
-                    {
-                        result += entry.Value;
-                        i += entry.Key.Length - 1;
-                        foundMatchingKeyWord = true;
-                        break;
-                    }
+                // Try to match the remainder with the key
+                var remainingChars = line.Substring(i, entry.Key.Length);
+                bool charsMatchedWithKey = remainingChars.Equals(
+                    entry.Key,
+                    StringComparison.OrdinalIgnoreCase
+                );
+
+                // If match, add the digit and jump to the next point in the line
+                // Next point is the last character of the matched key to catch edge cases such as "oneight" -> 18
+                if (charsMatchedWithKey)
+                {
+                    result += entry.Value;
+                    i += entry.Key.Length - 1;
+                    matchedWithKey = true;
+                    break;
                 }
             }
 
-            // If no match, check if it is a digit, add it to the result, move to next character
-            if (!foundMatchingKeyWord)
+            // If no match, move to the next char
+            if (!matchedWithKey)
             {
-                if (char.IsDigit(word[i]))
-                {
-                    result += word[i];
-                }
                 i++;
             }
         }
         return result;
     }
 
-    // Iterates over a string representation of a number and returns an integer of the first and last digit
+    // Fetches the first and last digits and returns the new number
     // "1820" -> 10
-    static int FirstAndLastDigits(string word)
+    static int FirstAndLastDigits(string line)
     {
-        char? firstDigit = null;
-        char? lastDigit = null;
-
-        foreach (char c in word)
-        {
-            if (char.IsDigit(c))
-            {
-                // if firstDigit is null, we assign c as it is the first digit
-                firstDigit ??= c;
-
-                // update lastDigit each time we encounter a new digit
-                lastDigit = c; //
-            }
-        }
-
-        // return 0 if no digit vas found
-        if (firstDigit == null || lastDigit == null)
-        {
-            return 0;
-        }
+        char firstDigit = line.First();
+        char lastDigit = line.Last();
 
         // Parse the first and last digit to an integer
         string numberString = $"{firstDigit}{lastDigit}";
