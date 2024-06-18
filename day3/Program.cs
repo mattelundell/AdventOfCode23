@@ -2,16 +2,6 @@
 
 internal class Program
 {
-    // Struct for the directions of adjacent cells
-    public struct CardinalDirection
-    {
-        public string Direction { get; set; }
-        public int Row { get; set; }
-        public int Col { get; set; }
-    }
-
-    public static readonly char Gear = '*';
-
     static void Main(string[] args)
     {
         string inputPath = "input.txt";
@@ -88,6 +78,16 @@ internal class Program
 
         Console.WriteLine($"The sum of the gear ratios is: {gearRatioSum}");
     }
+
+    // Struct for the directions of adjacent cells
+    public struct CardinalDirection
+    {
+        public string Direction { get; set; }
+        public int Row { get; set; }
+        public int Col { get; set; }
+    }
+
+    public static readonly char Gear = '*';
 
     // Initializes 2D array of characters to represent the inputdata as a grid
     public static char[,] InitializeGrid(string[] data, int numRows, int numCols)
