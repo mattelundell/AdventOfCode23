@@ -64,16 +64,29 @@ internal class Program
             },
         ];
 
-        List<int> adjacentNumbers = FindAdjacentNumbers(grid, directions);
-        List<HashSet<int>> gearParts = FindGearParts(grid, directions);
+        List<Symbol> symbolsWithAdjacentNumbers = FindSymbolsWithAdjacentNumbers(grid, directions);
 
-        // Calculate the gearRatio (gearPartA * gearPartB) for each set of gearParts and aggregate the total
+        // Filter to get only gear symbols with adjacent numbers of length two
+        List<Symbol> gearParts = symbolsWithAdjacentNumbers
+            .Where(symbol => symbol.Type == GEAR && symbol.AdjacentNumbers.Count == 2)
+            .ToList();
+
+        // Calculate the sum of the numbers adjacent to a symbol
+        // 527_446
+        int sumAdjacentNumbers = symbolsWithAdjacentNumbers
+            .Select(symbol => symbol.AdjacentNumbers.Sum())
+            .Sum();
+
+        // Calculate the gearRatio (gearPartA * gearPartB) for each set of gear parts and aggregate the total
+        // 73_201_705
         int gearRatioSum = gearParts
-            .Select(parts => parts.Aggregate(1, (gearRatio, part) => gearRatio * part))
+            .Select(symbol =>
+                symbol.AdjacentNumbers.ElementAt(0) * symbol.AdjacentNumbers.ElementAt(1)
+            )
             .Sum();
 
         Console.WriteLine(
-            $"The sum of the numbers that are adjacent to a symbol is: {adjacentNumbers.Sum()}"
+            $"The sum of the numbers that are adjacent to a symbol is: {sumAdjacentNumbers}"
         );
 
         Console.WriteLine($"The sum of the gear ratios is: {gearRatioSum}");
@@ -87,7 +100,15 @@ internal class Program
         public int Col { get; set; }
     }
 
-    public static readonly char Gear = '*';
+    public static readonly char GEAR = '*';
+
+    public struct Symbol
+    {
+        public int Row { get; set; }
+        public int Col { get; set; }
+        public char Type { get; set; }
+        public HashSet<int> AdjacentNumbers { get; set; }
+    }
 
     // Initializes 2D array of characters to represent the inputdata as a grid
     public static char[,] InitializeGrid(string[] data, int numRows, int numCols)
@@ -103,90 +124,67 @@ internal class Program
         return grid;
     }
 
-    // Returns a List of all the numbers that are adjacent to a symbol
-    public static List<int> FindAdjacentNumbers(char[,] grid, CardinalDirection[] directions)
-    {
-        int numRows = grid.GetLength(0);
-        int numCols = grid.GetLength(1);
-        List<int> adjacentNumbers = [];
-
-        // Loop through the grid and find a symbol
-        for (int row = 0; row < numRows; row++)
-        {
-            for (int col = 0; col < numCols; col++)
-            {
-                if (IsSymbol(grid[row, col]))
-                {
-                    HashSet<int> candidateNumbers = [];
-                    // Check all adjacent tiles in the grid
-                    foreach (CardinalDirection direction in directions)
-                    {
-                        int candidateRow = row + direction.Row;
-                        int candidateCol = col + direction.Col;
-
-                        // Check if the candidate tile is valid, i.e. in bounds and a digit
-                        // If valid, extract the number and store it in a HashSet to avoid duplicates
-                        if (IsValidCandidate(grid, candidateRow, candidateCol))
-                        {
-                            candidateNumbers.Add(ExtractNumber(grid, candidateRow, candidateCol));
-                        }
-                    }
-
-                    // Add the valid candidates to the list of adjacent numbers
-                    adjacentNumbers.AddRange(candidateNumbers);
-                }
-            }
-        }
-
-        return adjacentNumbers;
-    }
-
-    // Returns a List with a HashSet containing the gearParts-combo
-    public static List<HashSet<int>> FindGearParts(char[,] grid, CardinalDirection[] directions)
+    // Evaluates each symbol in the grid to find adjacent numbers
+    // Returns a list of Symbols that contain the coordinates, the type of symbol, and a list of its adjacent numbers
+    public static List<Symbol> FindSymbolsWithAdjacentNumbers(
+        char[,] grid,
+        CardinalDirection[] directions
+    )
     {
         int numRows = grid.GetLength(0);
         int numCols = grid.GetLength(1);
 
-        List<HashSet<int>> gearParts = [];
+        List<Symbol> symbolsWithAdjacentNumbers = [];
 
-        // Loop through the grid to find a Gear ('*')
         for (int row = 0; row < numRows; row++)
         {
             for (int col = 0; col < numCols; col++)
             {
-                if (IsGear(grid[row, col]))
+                // Make sure that the candidate is a symbol, otherwise go to the next tile in the grid
+                char candidate = grid[row, col];
+                if (!IsSymbol(candidate))
                 {
-                    HashSet<int> candidateNumbers = [];
-                    // Check all adjacent tiles in the grid
-                    foreach (CardinalDirection direction in directions)
-                    {
-                        int candidateRow = row + direction.Row;
-                        int candidateCol = col + direction.Col;
-
-                        // Check if the candidate tile is valid, i.e. in bounds and a digit
-                        // If valid, extract the number and store it in a HashSet to avoid duplicates
-                        if (IsValidCandidate(grid, candidateRow, candidateCol))
-                        {
-                            candidateNumbers.Add(ExtractNumber(grid, candidateRow, candidateCol));
-                        }
-                    }
-
-                    // Add the candidates to the list of gearParts if they are gearParts
-                    if (IsGearPart(candidateNumbers))
-                    {
-                        gearParts.Add(candidateNumbers);
-                    }
+                    continue;
                 }
+
+                // Check each adjacent tile to the candidate
+                HashSet<int> adjacentNumbers = [];
+                foreach (var direction in directions)
+                {
+                    int adjacentRow = row + direction.Row;
+                    int adjacentCol = col + direction.Col;
+
+                    // If not a valid adjacent tile, i.e. not within bounds or a digit, move on to the next adjacent tile
+                    if (!IsValidAdjacentTile(grid, adjacentRow, adjacentCol))
+                    {
+                        continue;
+                    }
+
+                    // Extract the complete number from the digit and add it to the list of adjacent numbers
+                    int number = ExtractNumber(grid, adjacentRow, adjacentCol);
+                    adjacentNumbers.Add(number);
+                }
+
+                // Move on to the next tile if we did not find any adjacent numbers
+                if (adjacentNumbers.Count == 0)
+                {
+                    continue;
+                }
+
+                // Create a new Symbol and add it to our list
+                symbolsWithAdjacentNumbers.Add(
+                    new Symbol
+                    {
+                        Row = row,
+                        Col = col,
+                        Type = candidate,
+                        AdjacentNumbers = adjacentNumbers
+                    }
+                );
             }
         }
 
-        return gearParts;
-    }
-
-    // Helper function to evaluate that a candidate set is gear parts (has exactly two numbers)
-    public static Boolean IsGearPart(HashSet<int> gearSet)
-    {
-        return gearSet.Count == 2;
+        return symbolsWithAdjacentNumbers;
     }
 
     // Helper method to evaluate if a character is a symbol
@@ -195,13 +193,8 @@ internal class Program
         return c != '.' && !char.IsDigit(c);
     }
 
-    public static bool IsGear(char c)
-    {
-        return c == Gear;
-    }
-
     // Helper method to evaluate if a candidate tile is valid, i.e. within bounds and a digit
-    public static bool IsValidCandidate(char[,] grid, int row, int col)
+    public static bool IsValidAdjacentTile(char[,] grid, int row, int col)
     {
         int numRows = grid.GetLength(0);
         int numCols = grid.GetLength(1);
