@@ -8,10 +8,10 @@ internal class Program
         var filePath = "inputData.txt";
         var inputData = File.ReadAllLines(filePath);
         List<Card> cards = ParseInput(inputData);
-        var totalPoints = CalculateTotalPoints(cards);
-        var totalScratchcardsWon = CalculateScratchcardsWon(cards);
+        var (totalPoints, scratchcardsWon) = CalculateTotalPoints(cards);
+
         Console.WriteLine($"The total points for all cards is: {totalPoints}");
-        Console.WriteLine($" You have won: {totalScratchcardsWon} scratchcards");
+        Console.WriteLine($"The total number of copies won is: {scratchcardsWon}");
     }
 
     // Struct used to construct cards based on the input data
@@ -76,57 +76,44 @@ internal class Program
         return cards;
     }
 
-    // Calculates the total points of a scratchcard from a list of cards.
-    static int CalculateTotalPoints(List<Card> cards)
+    // Calculates the total points of a scratchcard from a list of cards and summarizes the number of scratchcards won.
+    static (int totalPoints, int scratchcardsWon) CalculateTotalPoints(List<Card> cards)
     {
+        int originalNumOfCards = cards.Count;
+        List<int> cardCopies = new(new int[originalNumOfCards + 1]);
+        List<int> matches = new(new int[originalNumOfCards + 1]);
         int totalPoints = 0;
 
-        // Evaluate each card and add its points to the total
-        foreach (var card in cards)
+        // Evaluate each card, store the number of matches, and add its points to the total
+        for (int cardId = 1; cardId <= originalNumOfCards; cardId++)
         {
-            int matches = card.OwnedNumbers.Intersect(card.WinningNumbers).Count();
-            int points = matches == 0 ? 0 : (int)Math.Pow(2, matches - 1);
+            Card currentCard = cards.First(card => card.Id == cardId);
+            int numOfMatches = currentCard
+                .OwnedNumbers.Intersect(currentCard.WinningNumbers)
+                .Count();
+            matches[cardId] = numOfMatches;
+
+            // Calculate points
+            int points = numOfMatches == 0 ? 0 : (int)Math.Pow(2, numOfMatches - 1);
             totalPoints += points;
-        }
 
-        return totalPoints;
-    }
+            // Add one of each original card to our list of copies
+            cardCopies[cardId] += 1;
 
-    // Calculates the number of scratchcards, original set and copies won, from a list of cards.
-    static int CalculateScratchcardsWon(List<Card> cards)
-    {
-        // Initialize a queue with the original cards
-        int numberOfScratchcards = cards.Count;
-        Queue<(int cardId, int copy)> cardsToScratch = new();
-        for (int i = 0; i < numberOfScratchcards; i++)
-        {
-            cardsToScratch.Enqueue((i + 1, 1));
-        }
-
-        // Keep scratching cards as long as there are cards in the queue.
-        while (cardsToScratch.Count > 0)
-        {
-            // Take the first item in the queue, match it with a cardId
-            // Count the number of matching / winning numbers
-            var (currentCardId, copy) = cardsToScratch.Dequeue();
-            Card currentCard = cards.First(card => card.Id == currentCardId);
-            int matches = currentCard.OwnedNumbers.Intersect(currentCard.WinningNumbers).Count();
-
-            // add the number of matches, i.e. number of cards won to total
-            numberOfScratchcards += matches;
-
-            // Add each copy won to the queue
-            for (int i = 1; i <= matches; i++)
+            // If we have matches, add the number of copies of the current card to the following cardIds as per the game rule.
+            if (matches[cardId] == 0)
             {
-                int wonCardId = currentCardId + i;
-                if (wonCardId > numberOfScratchcards)
-                {
-                    break;
-                }
-                cardsToScratch.Enqueue((wonCardId, copy));
+                continue;
+            }
+            for (int j = 1; j <= matches[cardId]; j++)
+            {
+                cardCopies[cardId + j] += cardCopies[cardId];
             }
         }
 
-        return numberOfScratchcards;
+        // Sum the total number of copies
+        int totalScratchcards = cardCopies.Sum();
+
+        return (totalPoints, totalScratchcards);
     }
 }
